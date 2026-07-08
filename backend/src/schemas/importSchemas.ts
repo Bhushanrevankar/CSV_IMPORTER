@@ -17,30 +17,40 @@ export const DATA_SOURCE_VALUES = [
   "sarjapur_plots",
 ] as const;
 
+// ─── Helpers for AI output (Gemini may return null, undefined, or string) ───
+
+/** Accepts string | null | undefined → always outputs string (defaults to "") */
+const aiString = () =>
+  z
+    .union([z.string(), z.null()])
+    .optional()
+    .transform((v) => v ?? "");
+
+/** Accepts a valid enum value, empty string, null, or undefined → outputs enum value or "" */
+const aiEnum = <T extends readonly [string, ...string[]]>(values: T) =>
+  z
+    .union([z.enum(values), z.literal(""), z.null()])
+    .optional()
+    .transform((v) => v ?? "");
+
 // ─── CRM Record Schema (what the AI must produce per row) ───────────────────
 
 export const crmRecordSchema = z.object({
-  created_at: z.string().default(""),
-  name: z.string().default(""),
-  email: z.string().default(""),
-  country_code: z.string().default(""),
-  mobile_without_country_code: z.string().default(""),
-  company: z.string().default(""),
-  city: z.string().default(""),
-  state: z.string().default(""),
-  country: z.string().default(""),
-  lead_owner: z.string().default(""),
-  crm_status: z
-    .enum(CRM_STATUS_VALUES)
-    .or(z.literal(""))
-    .default(""),
-  crm_note: z.string().default(""),
-  data_source: z
-    .enum(DATA_SOURCE_VALUES)
-    .or(z.literal(""))
-    .default(""),
-  possession_time: z.string().default(""),
-  description: z.string().default(""),
+  created_at: aiString(),
+  name: aiString(),
+  email: aiString(),
+  country_code: aiString(),
+  mobile_without_country_code: aiString(),
+  company: aiString(),
+  city: aiString(),
+  state: aiString(),
+  country: aiString(),
+  lead_owner: aiString(),
+  crm_status: aiEnum(CRM_STATUS_VALUES),
+  crm_note: aiString(),
+  data_source: aiEnum(DATA_SOURCE_VALUES),
+  possession_time: aiString(),
+  description: aiString(),
 });
 
 export type CrmRecord = z.infer<typeof crmRecordSchema>;
