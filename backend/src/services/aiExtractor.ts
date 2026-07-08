@@ -80,12 +80,14 @@ function delay(ms: number): Promise<void> {
 }
 
 // ─── Single Batch Call with Retry ───────────────────────────────────────────
+// JSON parsing + array shape validation happens inside the retry loop so that
+// malformed responses from Gemini are retried (spec requirement).
 
 async function callGeminiForBatch(
   client: GoogleGenAI,
   batchRows: Record<string, string>[],
   systemPrompt: string
-): Promise<string> {
+): Promise<unknown[]> {
   const userMessage = JSON.stringify(batchRows);
   let lastError: Error | null = null;
 
@@ -114,7 +116,26 @@ async function callGeminiForBatch(
         throw new Error("Empty response from Gemini");
       }
 
-      return text;
+      // Parse JSON inside the retry loop — malformed JSON triggers retry
+      let cleaned = text.trim();
+      if (cleaned.startsWith("```")) {
+        cleaned = cleaned
+          .replace(/^```(?:json)?\n?/, "")
+          .replace(/\n?```$/, "");
+      }
+
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(cleaned);
+      } catch {
+        throw new Error("Gemini returned malformed JSON");
+      }
+
+      if (!Array.isArray(parsed)) {
+        throw new Error("Gemini response was not a JSON array");
+      }
+
+      return parsed;
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
       console.error(
@@ -128,41 +149,15 @@ async function callGeminiForBatch(
 }
 
 // ─── Process & Validate Batch Result ────────────────────────────────────────
+// Receives pre-parsed unknown[] (JSON parsing + array validation already
+// handled inside callGeminiForBatch's retry loop).
 
 function processBatchResult(
-  rawJson: string,
+  parsed: unknown[],
   originalRows: Record<string, string>[]
 ): ExtractionResult {
   const imported: CrmRecord[] = [];
   const skipped: SkippedRecord[] = [];
-
-  // Parse the JSON — strip markdown code fences if Gemini wraps the response
-  let parsed: unknown;
-  try {
-    let cleaned = rawJson.trim();
-    if (cleaned.startsWith("```")) {
-      cleaned = cleaned
-        .replace(/^```(?:json)?\n?/, "")
-        .replace(/\n?```$/, "");
-    }
-    parsed = JSON.parse(cleaned);
-  } catch {
-    // Entire batch response is malformed JSON — skip all rows
-    for (const row of originalRows) {
-      skipped.push({ originalRow: row, reason: "AI returned malformed JSON" });
-    }
-    return { imported, skipped };
-  }
-
-  if (!Array.isArray(parsed)) {
-    for (const row of originalRows) {
-      skipped.push({
-        originalRow: row,
-        reason: "AI response was not an array",
-      });
-    }
-    return { imported, skipped };
-  }
 
   // Zip AI output with original rows
   for (let i = 0; i < originalRows.length; i++) {
@@ -247,12 +242,12 @@ export async function extractRecords(
         console.log(
           `    Batch ${globalBatchIndex}/${batches.length}: ${batchRows.length} rows`
         );
-        const rawJson = await callGeminiForBatch(
+        const parsedBatch = await callGeminiForBatch(
           client,
           batchRows,
           systemPrompt
         );
-        return processBatchResult(rawJson, batchRows);
+        return processBatchResult(parsedBatch, batchRows);
       } catch {
         // All retries exhausted — mark entire batch as skipped
         console.error(
