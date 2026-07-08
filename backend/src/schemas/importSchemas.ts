@@ -20,27 +20,27 @@ export const DATA_SOURCE_VALUES = [
 // ─── CRM Record Schema (what the AI must produce per row) ───────────────────
 
 export const crmRecordSchema = z.object({
-  created_at: z.string(),
-  name: z.string(),
-  email: z.string(),
-  country_code: z.string(),
-  mobile_without_country_code: z.string(),
-  company: z.string(),
-  city: z.string(),
-  state: z.string(),
-  country: z.string(),
-  lead_owner: z.string(),
+  created_at: z.string().default(""),
+  name: z.string().default(""),
+  email: z.string().default(""),
+  country_code: z.string().default(""),
+  mobile_without_country_code: z.string().default(""),
+  company: z.string().default(""),
+  city: z.string().default(""),
+  state: z.string().default(""),
+  country: z.string().default(""),
+  lead_owner: z.string().default(""),
   crm_status: z
     .enum(CRM_STATUS_VALUES)
     .or(z.literal(""))
     .default(""),
-  crm_note: z.string(),
+  crm_note: z.string().default(""),
   data_source: z
     .enum(DATA_SOURCE_VALUES)
     .or(z.literal(""))
     .default(""),
-  possession_time: z.string(),
-  description: z.string(),
+  possession_time: z.string().default(""),
+  description: z.string().default(""),
 });
 
 export type CrmRecord = z.infer<typeof crmRecordSchema>;
