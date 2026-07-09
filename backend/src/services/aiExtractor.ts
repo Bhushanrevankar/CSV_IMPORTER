@@ -47,7 +47,7 @@ function buildSystemPrompt(): string {
 
 For each input row object, produce exactly one output JSON object with ALL of these fields (use empty string "" when no data is available — never use null, never omit a field):
 
-  created_at                    — Lead creation date (valid JS date string, e.g. "2026-05-13 14:20:48"). Use current date/time if not found in the data.
+  created_at                    — Lead creation date, in the format "YYYY-MM-DD HH:MM:SS", extracted directly from the source data (e.g. a date/timestamp column). If no date is present anywhere in the row, output empty string "" — do NOT guess, invent, or substitute today's date.
   name                          — Lead's full name.
   email                         — Primary email address.
   country_code                  — Phone country code (e.g. "+91"). Infer from context if possible.
