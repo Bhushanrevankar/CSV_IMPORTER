@@ -1,12 +1,8 @@
 import { Request, Response, NextFunction } from "express";
-
+import { ERROR_CODES } from "../schemas/importSchemas";
 // ─── Error Codes (matching spec Section 4) ──────────────────────────────────
 
-type ErrorCode =
-  | "INVALID_REQUEST"
-  | "FILE_TOO_LARGE"
-  | "AI_PROVIDER_ERROR"
-  | "INTERNAL_ERROR";
+type ErrorCode = typeof ERROR_CODES[number];
 
 // ─── Custom Error Class ─────────────────────────────────────────────────────
 

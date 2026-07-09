@@ -30,6 +30,7 @@ const aiString = () =>
 const aiEnum = <T extends readonly [string, ...string[]]>(values: T) =>
   z
     .union([z.enum(values), z.literal(""), z.null()])
+    .catch("")
     .optional()
     .transform((v) => v ?? "");
 
