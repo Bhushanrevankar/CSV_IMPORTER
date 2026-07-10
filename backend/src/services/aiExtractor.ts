@@ -39,6 +39,7 @@ function getGeminiClient(): GoogleGenAI {
 
 // ─── System Prompt ──────────────────────────────────────────────────────────
 
+
 function buildSystemPrompt(): string {
   const statusValues = CRM_STATUS_VALUES.map((v) => `"${v}"`).join(", ");
   const sourceValues = DATA_SOURCE_VALUES.map((v) => `"${v}"`).join(", ");
@@ -50,7 +51,7 @@ For each input row object, produce exactly one output JSON object with ALL of th
   created_at                    — Lead creation date. Look for any date/timestamp value anywhere in the row (it may appear in formats like "03/15/2024", "2024-06-12", or a full timestamp). If found, convert it to "YYYY-MM-DD HH:MM:SS" format (use "00:00:00" for the time if no time is given). Only output empty string "" if no date or timestamp value exists anywhere in the row — do not leave it blank just because the format differs from the target, and do not invent a date if none exists.
   name                          — Lead's full name.
   email                         — Primary email address.
-  country_code                  — Phone country code (e.g. "+91"). Infer from context if possible.
+  country_code                  — Phone country code (e.g. "+91"). Only infer this from a strong, unambiguous signal (e.g. an explicit country/city already named in the row, or a number already partially formatted with a country code). Do not guess a country code purely from a city/state name alone if no other signal supports it.
   mobile_without_country_code   — Mobile number WITHOUT country code.
   company                       — Company / organisation name.
   city                          — City.
@@ -70,8 +71,10 @@ STRICT RULES:
 4. If a field has no data, use empty string "". NEVER use null or omit the field.
 5. No raw line breaks inside any field value. Use "\\n" if a note needs a line break.
 6. Return ONLY a valid JSON array of objects — no markdown fences, no commentary, no explanation.
-7. The output array MUST have exactly the same number of elements as the input array, in the same order.`;
+7. The output array MUST have exactly the same number of elements as the input array, in the same order.
+8. Any field requiring inference beyond directly extracting what's written in the row (e.g. country, country_code, or other geographic details) must follow this standard: only infer from strong, unambiguous, real-world signals (e.g. a real state/province abbreviation, a well-known real city, an explicit country name already present in the row). Never infer from fictional, ambiguous, or unclear signals. When uncertain, output empty string "" rather than guessing. Apply this standard identically and consistently across all rows and across repeated runs on the same data.`;
 }
+
 
 // ─── Delay helper ───────────────────────────────────────────────────────────
 
