@@ -4,7 +4,7 @@ An AI-powered CSV importer that intelligently maps arbitrary CRM lead export for
 
 Built for the GrowEasy Software Developer assignment.
 
-**Position applied for:** _[Software Developer Intern / Software Developer (Full-Time) — fill in]_
+**Position applied for:** Software Developer Intern
 
 ---
 
